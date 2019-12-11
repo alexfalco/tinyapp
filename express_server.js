@@ -6,7 +6,7 @@ const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({extended: true}));
 
 
-function generateRandomString() {
+function generateRandomShortUR() {
   const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz";
   
   let string_length = 6;
@@ -53,12 +53,23 @@ app.get("/urls/new", (req, res) => {
 });
 
 
+
 app.post("/urls", (req, res) => {
-  console.log(req.body);  // Log the POST request body to the console
-  res.send("Ok");         // Respond with 'Ok' (we will replace this)
+  
+  let newShortURL = generateRandomShortUR();
+  urlDatabase[newShortURL] = req.body.longURL;
+  console.log(urlDatabase)
+  res.redirect(`/urls/${newShortURL}`)
+ 
+  // console.log(req.body);  // Log the POST request body to the console
+  // res.send("Ok");         // Respond with 'Ok' (we will replace this)
 });
 
-
+//coup de chande demande pourquoi???
+app.get("/u/:shortURL", (req, res) => {
+   const longURL = urlDatabase[req.params.shortURL]
+  res.redirect(longURL);
+});
 
 app.get("/urls/:shortURL", (req, res) => {
   let templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
@@ -66,7 +77,11 @@ app.get("/urls/:shortURL", (req, res) => {
 });
 
 
-
+app.post("/urls/:shortURL/delete", (req, res) => {
+  const urlToDelete = req.params.shortURL;
+  delete urlDatabase[urlToDelete];
+  res.redirect("/urls");
+});
 
 
 
