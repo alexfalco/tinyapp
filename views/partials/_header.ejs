@@ -12,19 +12,21 @@
 
    
     </div>
-    <% if (username) { %>
+    <% if (user) { %>
+      Logged In As: <%= user.email %> !
+    
       <form method="POST" action="/logout">
         <button class="btn btn-light" disabled>
-          Logged In As: <%= username %> !
+          
         </button>
         <button type="submit" class="btn btn-primary">Logout</button>
       </form>
-      <% } else { %>
-      <form method="POST" action="/login">
-        <input type="text" name="username" placeholder="Username" />
-        <button type="submit" class="btn btn-primary">Login</button>
-      </form>
-      <% } %>
+     
+     
+      <% }  else { %>
+      
+      <p><a href="/login">Log In</a> or <a href="/register">Register</a></p>
+      <% }  %>
       
   </nav>
 </header>
