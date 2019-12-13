@@ -6,6 +6,7 @@ const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({extended: true}));
 const cookieParser = require("cookie-parser");
 app.use(cookieParser());
+const bcrypt = require('bcrypt');
 
 const urlDatabase = {
   b6UTxQ: { longURL: "https://www.tsn.ca", userID: "aJ48lW" },
@@ -199,7 +200,7 @@ app.post("/urls/:shortURL", (req, res) => {
 
 });
 
-
+// Get to the registration page
 app.get("/register", (req, res) => {
   
   let templateVars = {
@@ -209,14 +210,13 @@ app.get("/register", (req, res) => {
   
 })
 
-
+// Registration Process
 app.post("/register", (req, res) => {
   
   let { email, password } = req.body;
-  
+  const hashedPassword = bcrypt.hashSync(password, 10);
+
   if (!email || !password){
-    
-   
     res.status(400).send("no email/password entered");
     
   }
@@ -228,7 +228,7 @@ app.post("/register", (req, res) => {
   users[id] = {
     id: id,
     email: email,
-    password: password
+    password: hashedPassword
   }
 
   console.log(id)
@@ -261,11 +261,11 @@ app.post("/login", (req, res) => {
      res.status(400).send("no email/password entered");
   }
    else if  (!emailLookup("email", users, email)) {
-      res.send("Error")   
+    res.send("Error: Problem with either the e-mail or the password")  
    }
 
-   else if (users[currentUserId]["password"] !== password ) {
-      res.send("Error") 
+   else if (!bcrypt.compareSync(password, users[currentUserId]["password"])) {
+      res.send("Error: Problem with either the e-mail or the password") 
    }
     
 res.cookie("user_id",currentUserId)
