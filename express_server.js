@@ -7,7 +7,14 @@ app.use(bodyParser.urlencoded({extended: true}));
 const cookieParser = require("cookie-parser");
 app.use(cookieParser());
 
-
+const urlDatabase = {
+  b6UTxQ: { longURL: "https://www.tsn.ca", userID: "aJ48lW" },
+  i3BoGr: { longURL: "https://www.google.ca", userID: "aJ48lW" },
+  defsdf: { longURL: "https://www.tsn.ca", userID: "123456" },
+  erefdf: { longURL: "https://www.google.ca", userID: "123456" },
+  asedfr: { longURL: "https://www.tsn.ca", userID: "aJ48lW" },
+  cfbmop: { longURL: "https://www.google.ca", userID: "aJ48lW" },
+};
 
 const users = { 
   "userRandomID": {
@@ -19,6 +26,11 @@ const users = {
     id: "user2RandomID", 
     email: "user2@example.com", 
     password: "dishwasher-funk"
+  },
+  "123456": {
+    id: "123456", 
+    email: "afalconer02@gmail.com", 
+    password: "allo"
   }
 }
 
@@ -32,7 +44,7 @@ const emailLookup = function(propName, ObjUsers, property){
   return undefined;
 }
 
-function generateRandomShortURL() {
+const generateRandomShortURL = function() {
   const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz";
   
   let string_length = 6;
@@ -47,12 +59,19 @@ function generateRandomShortURL() {
   
 }
 
-
-
-const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+const urlsForUser = function(currentUserID) {
+  let currentUserURLs = {};
+  for (const CurrId in urlDatabase) {
+    if (urlDatabase[CurrId].userID === currentUserID) {
+      currentUserURLs[CurrId] = urlDatabase[CurrId];
+    }
+  }
+  return currentUserURLs;
 };
+
+
+
+
 
 app.get("/", (req, res) => {
   res.send("This is Tiny App");
@@ -68,67 +87,116 @@ app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
 
+
 app.get("/urls", (req, res) => {
-  let templateVars = { urls: urlDatabase,    
-    user : users[req.cookies["user_id"]]
+    
+  let templateVars = { urls: urlsForUser(req.cookies["user_id"]),    
+    user : users[req.cookies["user_id"]]  
     
 };
-
-  res.render("urls_index", templateVars);
+// Mettre un msg lorsque redirige vers la page login
+  if (req.cookies["user_id"]) {
+    res.render("urls_index", templateVars);
+    }
+    else {
+      res.render("login", templateVars)
+    }
 });
 
 
+
+// Get New: il faut etre login pour voir le
 app.get("/urls/new", (req, res) => {
+ 
   let templateVars = {
     user : users[req.cookies["user_id"]]
   };
+  
+  if (req.cookies["user_id"]) {
   res.render("urls_new", templateVars);
+  }
+  else {
+    res.redirect("/login")
+  }
 });
 
 
-
-app.post("/urls", (req, res) => {
+// Post new URL
+app.post("/urls/new", (req, res) => {
   
   let newShortURL = generateRandomShortURL();
-  urlDatabase[newShortURL] = req.body.longURL;
-  console.log(urlDatabase)
-  res.redirect(`/urls/${newShortURL}`)
- 
+    urlDatabase[newShortURL] = { longURL: req.body.longURL, userID: req.cookies["user_id"]}
+    console.log(urlDatabase)
+  res.redirect("/urls")
 });
 
+ 
 
+// make sure they redirect for users, even if they aren't logged in
 app.get("/u/:shortURL", (req, res) => {
-   const longURL = urlDatabase[req.params.shortURL]
+   const longURL = urlDatabase[req.params.shortURL].longURL
   res.redirect(longURL);
 });
 
+
+// get the details for an URL Update
 app.get("/urls/:shortURL", (req, res) => {
   let templateVars = { 
     user : users[req.cookies["user_id"]],
-    shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
-  res.render("urls_show", templateVars);
+    shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL].longURL};
+  
+  if (urlDatabase[req.params.shortURL].userID === req.cookies["user_id"]) {
+    res.render("urls_show", templateVars);
+  }
+  else if (!req.cookies["user_id"]) {
+    res.send("Please Sign in to update a URL ") 
+  }
+  else {
+    console.log(req.cookies["user_id"])
+  res.send("Error: You can't update a URL created by another user ")
+  }
 });
 
-
+// Delete
 app.post("/urls/:shortURL/delete", (req, res) => {
+  
   const urlToDelete = req.params.shortURL;
-  delete urlDatabase[urlToDelete];
-  res.redirect("/urls");
+ 
+  if (urlDatabase[urlToDelete].userID === req.cookies["user_id"]) {
+    delete urlDatabase[urlToDelete];
+    res.redirect("/urls");
+  }
+  else if (!req.cookies["user_id"]) {
+    res.send("Please Sign in to delete a URL ") 
+  }
+  else {
+    console.log(req.cookies["user_id"])
+  res.send("Error: You can't delete a URL created by another user ")
+  }
+
+
+
+
 });
 
-app.post("/urls", (req, res) => {
-  let newShortURL = generateRandomURL();
-  urlDatabase[newShortURL] = req.body.longURL;
-  res.redirect(`/urls/${newShortURL}`);
-});
 
-// Question 1
+// Edit URL 
 app.post("/urls/:shortURL", (req, res) => {
   console.log(req.body.newLongURL)
   const urlToEdit = req.params.shortURL;
   const newLongURL = req.body.newLongURL;
-  urlDatabase[urlToEdit] = newLongURL;
-  res.redirect("/urls");
+  if (urlDatabase[urlToEdit].userID === req.cookies["user_id"]) {
+    urlDatabase[urlToEdit].longURL = newLongURL;
+    res.redirect("/urls");
+  }
+  else if (!req.cookies["user_id"]) {
+    res.send("Please Sign in to update a URL ") 
+  }
+  else {
+    console.log(req.cookies["user_id"])
+  res.send("Error: You can't update a URL created by another user ")
+  }
+
 });
 
 
@@ -203,10 +271,6 @@ app.post("/login", (req, res) => {
 res.cookie("user_id",currentUserId)
 res.redirect("/urls");
 
-// console.log(id)
-// console.log(users[id])
-// res.cookie("user_id",id);
-// res.redirect("urls");
 
 })
 
